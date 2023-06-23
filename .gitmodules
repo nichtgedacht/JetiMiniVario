@@ -1,0 +1,6 @@
+[submodule "lib/JetiExBus"]
+	path = lib/JetiExBus
+	url = https://github.com/nichtgedacht/JetiExBus.git
+[submodule "lib/Arduino-MS5611-Interrupt"]
+	path = lib/Arduino-MS5611-Interrupt
+	url = https://github.com/nichtgedacht/Arduino-MS5611-Interrupt
