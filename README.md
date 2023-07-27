@@ -103,31 +103,37 @@ debug Serial.print goes through the USB-C connector. See "platformio.ini".
 
 ### Configuration
 
-There are only these defines at the beginning of the main code
+There are only these defines at the beginning of the main code:
 * //#define DEBUG // debug prints or not
 
-* #define DUAL // using one or two barometric pressure sensors
+* #define DUAL // using one or two barometric pressure sensors  
+    If dual pressure sensors are used one is for the variometer and the other becomes  
+    altitude.
 
 * #define GPS  // using the GNSS Modul or not
  
- Please comment out what is not used
- 
-* The RC-channel used for adjusting the filters time constants is hard coded as "12".
- 
- Look at the code for changing this.
+These defines depends on the assembled hardware. Please comment out what is not used
+<br>
+<br>
 
-* All NavPvt values gets decoded but not all of them are submitted to the EX Bus
+All other configuration can be done with a Command-Line-Interface:  
 
- Change as u like
- 
-* If dual pressure sensors are used one is for the variometer and the other becomes altitude
+![IMG07](doc/IMG09.png)
 
- All 4 values are calculated. Feel free to transmit what you want.
- 
-* Priority levels are set according to my needs
+The following items can be configured with the CLI
 
- Do it your way! 
- 
+* The RC-channel used for live adjusting the filters.  
+    The Number given is RC-channel - 1
+* The RC-channel used to reset the device  
+    The Number given is RC-channel - 1
+* Priority of a sensor
+
+* Enable/disable a sensor
+
+As terminal Putty can be used. The default settings of Putty are ok.  
+Just select the serial interface connected to the device.  
+Putty is available for Linux, MAC OS and Windows
+
 
 
 
