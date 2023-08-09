@@ -1,24 +1,25 @@
-
-//#define DEBUG
-#define DUAL
-#define GPS
-
-#include <MS5611.h>             //  https://github.com/nichtgedacht/Arduino-MS5611-Interrupt
+#include "MS5611.h"             //  https://github.com/nichtgedacht/Arduino-MS5611-Interrupt
 #include "JetiExBusProtocol.h"  //	https://github.com/nichtgedacht/JetiExBus
-#include <FlashStorage.h>       //  build in lib for storing configuration
+#include "config.h"
+
+config_t cfg;
 
 JetiExBusProtocol exBus;
 
-// minumum time constants of filter
-// will be controlled by ExBus configured channel later
-double T1 = 150000;
-double T2 = 200000;
+#define T1 150000.0 // base time constant
+#define T2 200000.6 // base time constant
+double t1 = T1;
+double t2 = T2;
 
 //char input;
 
 // set neutral
 uint16_t channelValue = 1500;
 uint16_t prevChannelValue = 1500;
+
+bool resetHome = true;
+double latHome;
+double lonHome;
 
 #ifdef GPS
 // sets refresh rate
@@ -41,48 +42,21 @@ char enable_galileo[] = { 0xb5, 0x62, 0x06, 0x3e, 0x0c, 0x00, 0x00, 0x00,
                           0x01, 0x01, 0x82, 0x56 };
 #endif
 
-typedef struct {
-    boolean valid;
-    uint8_t prio_VARIOM;
-    uint8_t prio_ALTITU;
-#ifdef GPS
-    uint8_t prio_GPSLON;
-    uint8_t prio_GPSLAT;
-    uint8_t prio_GPSSPD;
-    uint8_t prio_GPSALT;
-    uint8_t prio_GPSTIM;
-    uint8_t prio_GPSSAT;
-#endif    
-    bool enab_VARIOM;
-    bool enab_ALTITU;
-#ifdef GPS    
-    bool enab_GPSLON;
-    bool enab_GPSLAT;
-    bool enab_GPSSPD;
-    bool enab_GPSALT;
-    bool enab_GPSTIM;
-    bool enab_GPSSAT;
-#endif
-    uint8_t ctrl_CHANNL;
-    uint8_t rset_CHANNL;
-} config_t;
-
-FlashStorage(flashStore, config_t);
-config_t config;
-
-// it is strongly recommended to keep IDs in order without a gap 
 enum {
-    ID_CLIMB = 1,
-    ID_ALTITUDE,
+    ID_VARIOM = 1,
+    ID_ALTITU,
 #ifdef GPS    
     ID_GPSLON,
     ID_GPSLAT,
     ID_GPSSPD,
     ID_GPSALT,
-    ID_GPSTIME,
+    ID_GPSTIM,
     ID_GPSVEH,
-#endif    
-    endVal
+    ID_GPSDIS,
+    ID_GPSHAC,
+    ID_GPSVAC,
+    ID_GPSHEA
+#endif
 };
 
 double referencePressure_1 = 0, referencePressure_2 = 0;
@@ -91,9 +65,9 @@ double climb_1 = 0, climb0_1 = 0, climb_2 = 0, climb0_2 = 0;
 double dyn_alfa_1, dyn_alfa_2, alfa_1, alfa_2, factor;
 
 uint32_t diff_t_A, max_diff_t_A, diff_t_B, max_diff_t_B;
-double relativeAltitude_1 = 0, relativeAltitude_2 = 0; 
+double relativeAltitude_1 = 0, relativeAltitude_2 = 0;
 
-//bool cliStart = true;
+//int j=0;
 
 #ifdef GPS
 //-------------------- UBX ----------------------------
@@ -176,14 +150,30 @@ UBXFrameState state = WaitStart1;
 NavPvt_t NavPvt;
 NavPosllh_t NavPosllh;
 
+uint16_t distanceHome(double lonRemote, double latRemote ) {
+
+    double dx = 1113000 * cos( ( latHome * PI ) / 180 ) * ( lonHome - lonRemote); 
+    double dy = 1113000 * ( latHome - latRemote);
+    return round ( sqrt( dx * dx + dy * dy ) ); // distance in decimeter
+}
+
 void DecodeUBX(uint8_t Class, uint8_t ID) {
 
     bool valid = false;
+    double lat = 0, lon = 0;
 
     if ( Class == 1 && ID == 7 ) {
 
-        if ( NavPvt.Val.fixType == 3 )
+        if ( NavPvt.Val.fixType == 3 ) {
             valid = true;
+            lat = (double)NavPvt.Val.lat/10000000; // degree
+            lon = (double)NavPvt.Val.lon/10000000; // degree
+            if ( resetHome ) {
+                resetHome = false;
+                latHome = lat;
+                lonHome = lon;
+            }
+        }
 
 #ifdef DEBUG
         SerialUSB.print((double)NavPvt.Val.lon/10000000,7);
@@ -206,13 +196,19 @@ void DecodeUBX(uint8_t Class, uint8_t ID) {
         SerialUSB.print(NavPvt.Val.min);
         SerialUSB.print(":");
         SerialUSB.println(NavPvt.Val.sec);
+        SerialUSB.print(distanceHome(lon, lat));
+        SerialUSB.println("m");
 #endif
-        exBus.SetSensorValueGPS (ID_GPSLAT, false, (double)NavPvt.Val.lat/10000000, valid);
-        exBus.SetSensorValueGPS (ID_GPSLON, true,  (double)NavPvt.Val.lon/10000000, valid);
-        exBus.SetSensorValue (ID_GPSALT, round(NavPvt.Val.height/100), valid);
+        exBus.SetSensorValueGPS (ID_GPSLAT, false, lat, valid);
+        exBus.SetSensorValueGPS (ID_GPSLON, true,  lon, valid);
+        exBus.SetSensorValue (ID_GPSALT, round(NavPvt.Val.hMSL/100), valid);
         exBus.SetSensorValue (ID_GPSSPD, round(NavPvt.Val.gSpeed/10), valid);
-        exBus.SetSensorValueTime(ID_GPSTIME, NavPvt.Val.hour, NavPvt.Val.min, NavPvt.Val.sec, valid);
+        exBus.SetSensorValueTime(ID_GPSTIM, NavPvt.Val.hour, NavPvt.Val.min, NavPvt.Val.sec, valid);
         exBus.SetSensorValue (ID_GPSVEH, NavPvt.Val.numSV, valid);
+        exBus.SetSensorValue (ID_GPSDIS, distanceHome(lon, lat), valid);
+        exBus.SetSensorValue (ID_GPSHAC, round(NavPvt.Val.hAcc/100), valid);
+        exBus.SetSensorValue (ID_GPSVAC, round(NavPvt.Val.vAcc/100), valid);
+        exBus.SetSensorValue (ID_GPSHEA, round(NavPvt.Val.headMot/10000), valid);
     }
     
 #ifdef DEBUG
@@ -349,324 +345,47 @@ void parse_UBX_NAV(char c) {
 // -------------------- /UBX ---------------------------
 #endif
 
-void showConfig(bool read) {
-
-    if (read) {
-        config = flashStore.read();
-    }
-
-    SerialUSB.print( "prio_VARIOM: " );
-    SerialUSB.println( config.prio_VARIOM );
-    SerialUSB.print( "prio_ALTITU: ");
-    SerialUSB.println( config.prio_ALTITU );
-#ifdef GPS
-    SerialUSB.print( "prio_GPSLON: ");
-    SerialUSB.println( config.prio_GPSLON );
-    SerialUSB.print( "prio_GPSLAT: ");
-    SerialUSB.println( config.prio_GPSLAT );
-    SerialUSB.print( "prio_GPSSPD: ");
-    SerialUSB.println( config.prio_GPSSPD );
-    SerialUSB.print( "prio_GPSALT: ");
-    SerialUSB.println( config.prio_GPSALT );
-    SerialUSB.print( "prio_GPSTIM: ");
-    SerialUSB.println( config.prio_GPSTIM );
-    SerialUSB.print( "prio_GPSSAT: ");
-    SerialUSB.println( config.prio_GPSSAT );
-#endif
-    SerialUSB.print( "enab_VARIOM: " );
-    SerialUSB.println( config.enab_VARIOM );
-    SerialUSB.print( "enab_ALTITU: ");
-    SerialUSB.println( config.enab_ALTITU );
-#ifdef GPS
-    SerialUSB.print( "enab_GPSLON: ");
-    SerialUSB.println( config.enab_GPSLON );
-    SerialUSB.print( "enab_GPSLAT: ");
-    SerialUSB.println( config.enab_GPSLAT );
-    SerialUSB.print( "enab_GPSSPD: ");
-    SerialUSB.println( config.enab_GPSSPD );
-    SerialUSB.print( "enab_GPSALT: ");
-    SerialUSB.println( config.enab_GPSALT );
-    SerialUSB.print( "enab_GPSTIM: ");
-    SerialUSB.println( config.enab_GPSTIM );
-    SerialUSB.print( "enab_GPSSAT: ");
-    SerialUSB.println( config.enab_GPSSAT );
-#endif
-    SerialUSB.print( "ctrl_CHANNL: ");
-    SerialUSB.println( config.ctrl_CHANNL );
-    SerialUSB.print( "rset_CHANNL: ");
-    SerialUSB.println( config.rset_CHANNL );
-    SerialUSB.println();
-}
-
-void printKeyValue(char key[], uint8_t value) {
-    SerialUSB.print(key);
-    SerialUSB.print(" => ");
-    SerialUSB.println(value);
-}
-
-void cli (void) {
-
-    uint8_t i;
-    char c;
-    char command[20];
-    //char escSeq[20];
-    uint8_t pos = 0;
-    char *cptr;
-    char key[20];
-    uint8_t value = 0;
-
-    for(i=0; i<sizeof(command); i++) {
-        command[i] = 0;
-    }
-
-    SerialUSB.println( "Welcome to JetiMiniVario CLI\n" );
-    SerialUSB.println( "Usage: ");
-    SerialUSB.println( "\"<Keyword> <Value>\" stage change" );
-    SerialUSB.println( "\"show\" show staged changes" );
-    SerialUSB.println( "\"exit\" exit without change" );
-    SerialUSB.println( "\"write\" write changes to config \n" );
-    SerialUSB.println( "prio_XXX Values from 0 (highest) to 20, enab_XXX");
-    SerialUSB.println( "is 1 for enabled 0 for disabled, ctrl_CHANNL" );
-    SerialUSB.println( "and rset_CHANNL are each RC-channel-numbers - 1" );
-    SerialUSB.println( "Invalid input will be ignored\n" );
-    SerialUSB.println( "current config:");
-    showConfig(true);
-
-    while (1) {
-
-        while (SerialUSB.available()) {
-
-            c = SerialUSB.read();
-                                            // putty sends 0x7F as backspace when default config
-            if ( pos < sizeof(command) - 1 || c == '\b' || c == 0x7F) {
-                SerialUSB.write(c);
-            }
-
-            switch (c) {
-                // some terminals send 0x0D 0x0A on <enter> others send 0x0D only as Putty on default config
-                case '\n':
-                case '\r':
-
-                    pos = 0;
-                    SerialUSB.println(); // needed for putty
-
-                    // get one or to token from command
-                    i = 0;
-                    cptr = strtok(command, " ");
-                    while ( cptr != NULL) {
-                        i++;
-                        if ( i == 1) {
-                            strcpy(key, cptr);
-                        } else if ( i == 2 ) {
-                            value = strtoumax(cptr, NULL, 10);
-                        }
-                        cptr = strtok(NULL, " =");
-                    }
-
-                    switch (i) {
-
-                        case 1:
-                            if (strncmp(command, "exit", 4) == 0 ) {
-                                SerialUSB.println("exiting rebooting ... ");
-                                NVIC_SystemReset();
-                                //cliStart = false; // never reached
-                                break;
-                            } else if ( strncmp(command, "write", 5) == 0 ) {
-                                // write current values to config
-                                flashStore.write(config);
-                                SerialUSB.println("config written rebooting ...");
-                                delay(500);
-                                NVIC_SystemReset();
-                                break; // never reached
-                            } else if ( strncmp(command, "show", 4) == 0 ) {
-                                showConfig(false);
-                            }
-                            break;
-
-                        case 2:
-                            // change values after checking them
-                            if ( strncmp(key, "prio_VARIOM", 11 ) == 0 ) {
-                                if ( value <= 40 ) {
-                                    config.prio_VARIOM = value;
-                                    printKeyValue(key, value);
-                                }
-#ifdef GPS
-                            } else if ( strncmp(key, "prio_ALTITU", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_ALTITU = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "prio_GPSLON", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_GPSLON = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "prio_GPSLAT", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_GPSLAT = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "prio_GPSSPD", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_GPSSPD = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "prio_GPSALT", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_GPSALT = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "prio_GPSSAT", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_GPSSAT = value;
-                                    printKeyValue(key, value);
-                                }
-#endif
-                           } else if ( strncmp(key, "enab_VARIOM", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.prio_VARIOM = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "enab_ALTITU", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_ALTITU = value;
-                                    printKeyValue(key, value);
-                                }
-#ifdef GPS
-                            } else if ( strncmp(key, "enab_GPSLON", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_GPSLON = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "enab_GPSLAT", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_GPSLAT = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "enab_GPSSPD", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_GPSSPD = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "enab_GPSALT", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_GPSALT = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "enab_GPSTIM", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_GPSTIM = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "enab_GPSSAT", 11 ) == 0 ) {
-                                if ( value <= 1 ) {
-                                    config.enab_GPSSAT = value;
-                                    printKeyValue(key, value);
-                                }
-#endif
-                            } else if ( strncmp(key, "ctrl_CHANNL", 11 ) == 0 ) {
-                                if ( value < 16 ) {
-                                    config.ctrl_CHANNL = value;
-                                    printKeyValue(key, value);
-                                }
-                            } else if ( strncmp(key, "rset_CHANNL", 11 ) == 0 ) {
-                                if ( value < 16 ) {
-                                    config.rset_CHANNL = value;
-                                    printKeyValue(key, value);
-                                }
-                            }
-                    }
-
-                    for(i=0; i<sizeof(command); i++) {
-                        command[i] = 0;
-                    }
-                    break;
-
-                // accept both as backspace
-                case '\b':
-                case 0x7F:
-                    command[--pos] = 0;
-                    SerialUSB.print(" \b");
-                    break;
-
-                default:
-                    if ( pos < sizeof(command) - 1 ) {
-                        command[pos++] = c;
-                    }
-            }
-        }
-
-        //if (cliStart == false) {
-        //    break;
-        //}
-    }
-}
-
-
 void setup () {
 
     uint8_t i;
 
-    config = flashStore.read();
-
-    if (config.valid == false) {
-        // set default values
-        config.prio_VARIOM = 0;
-        config.prio_ALTITU = 4;
-#ifdef GPS
-        config.prio_GPSLON = 3;
-        config.prio_GPSLAT = 3;
-        config.prio_GPSSPD = 3;
-        config.prio_GPSALT = 4;
-        config.prio_GPSTIM = 0;
-        config.prio_GPSSAT = 10;
-#endif
-
-        config.enab_VARIOM = 1;
-        config.enab_ALTITU = 1;
-#ifdef GPS
-        config.enab_GPSLON = 1;
-        config.enab_GPSLAT = 1;
-        config.enab_GPSSPD = 1;
-        config.enab_GPSALT = 1;
-        config.enab_GPSTIM = 1;
-        config.enab_GPSSAT = 1;
-#endif
-
-        config.ctrl_CHANNL = 11;
-        config.rset_CHANNL = 10;
-        config.valid = true;
-
-        flashStore.write(config);
-    }
+    cfg = getConf();
 
     // Attention! parameter priority added. Value will be send after every N times of completed sets
     // of all sensors are sent. Where N is priority.
     static JETISENSOR_CONST sensors[] = {
         //id,           name,            unit,               dataType, precision, priority
-        { ID_CLIMB,     "Vario",         "m/s",  JetiSensor::TYPE_14b, 2,         config.prio_VARIOM },
-        { ID_ALTITUDE,  "AltRelat.",     "m",    JetiSensor::TYPE_14b, 1,         config.prio_ALTITU },
+        { ID_VARIOM,    "Vario",         "m/s",  JetiSensor::TYPE_14b, 2,         cfg.prio_VARIOM },
+        { ID_ALTITU,    "AltRelat.",     "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_ALTITU },
 #ifdef GPS
-        { ID_GPSLON,    "GPS Longitude", "",     JetiSensor::TYPE_GPS, 0,         config.prio_GPSLON },
-	    { ID_GPSLAT,    "GPS Latitude",  "",     JetiSensor::TYPE_GPS, 0,         config.prio_GPSLAT },
-        { ID_GPSSPD,    "GPS Speed",     "m/s",  JetiSensor::TYPE_14b, 2,         config.prio_GPSSPD },
-	    { ID_GPSALT,    "GPS Altitude",  "m",    JetiSensor::TYPE_14b, 1,         config.prio_GPSALT },
-        { ID_GPSTIME,   "GPS Time",      " ",    JetiSensor::TYPE_DT,  0,         config.prio_GPSTIM },
-	    { ID_GPSVEH,    "GPS Vehicles",   "",    JetiSensor::TYPE_6b,  0,         config.prio_GPSSAT },
+        { ID_GPSLON,    "GPS Longitude", "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLON },
+	    { ID_GPSLAT,    "GPS Latitude",  "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLAT },
+        { ID_GPSSPD,    "GPS Speed",     "m/s",  JetiSensor::TYPE_14b, 2,         cfg.prio_GPSSPD },
+	    { ID_GPSALT,    "GPS Altitude",  "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSALT },
+        { ID_GPSTIM,    "GPS Time",      "",     JetiSensor::TYPE_DT,  0,         cfg.prio_GPSTIM },
+	    { ID_GPSVEH,    "GPS Vehicles",  "",     JetiSensor::TYPE_6b,  0,         cfg.prio_GPSSAT },
+        { ID_GPSDIS,    "GPS Distance",  "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
+        { ID_GPSHAC,    "GPS hAccuracy", "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
+        { ID_GPSVAC,    "GPS vAccuracy", "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
+        { ID_GPSHEA,    "GPS Heading",   "deg",  JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
 #endif
         0                           // end of array
     };
 
     // enable sensors according to config
-    exBus.SetSensorActive( ID_CLIMB, config.enab_VARIOM != 0, sensors );
-    exBus.SetSensorActive( ID_ALTITUDE, config.enab_ALTITU != 0, sensors );
+    exBus.SetSensorActive( ID_VARIOM, cfg.enab_VARIOM != 0, sensors );
+    exBus.SetSensorActive( ID_ALTITU, cfg.enab_ALTITU != 0, sensors );
 #ifdef GPS
-    exBus.SetSensorActive( ID_GPSLON, config.enab_GPSLON != 0, sensors );
-    exBus.SetSensorActive( ID_GPSLAT, config.enab_GPSLAT != 0, sensors );
-    exBus.SetSensorActive( ID_GPSSPD, config.enab_GPSSPD != 0, sensors );
-    exBus.SetSensorActive( ID_GPSALT, config.enab_GPSALT != 0, sensors );
-    exBus.SetSensorActive( ID_GPSTIME, config.enab_GPSTIM != 0, sensors );
-    exBus.SetSensorActive( ID_GPSVEH, config.enab_GPSSAT != 0, sensors );
+    exBus.SetSensorActive( ID_GPSLON, cfg.enab_GPSLON != 0, sensors );
+    exBus.SetSensorActive( ID_GPSLAT, cfg.enab_GPSLAT != 0, sensors );
+    exBus.SetSensorActive( ID_GPSSPD, cfg.enab_GPSSPD != 0, sensors );
+    exBus.SetSensorActive( ID_GPSALT, cfg.enab_GPSALT != 0, sensors );
+    exBus.SetSensorActive( ID_GPSTIM, cfg.enab_GPSTIM != 0, sensors );
+    exBus.SetSensorActive( ID_GPSVEH, cfg.enab_GPSSAT != 0, sensors );
+    exBus.SetSensorActive( ID_GPSDIS, cfg.enab_GPSDIS != 0, sensors );
+    exBus.SetSensorActive( ID_GPSHAC, cfg.enab_GPSHAC != 0, sensors );
+    exBus.SetSensorActive( ID_GPSVAC, cfg.enab_GPSVAC != 0, sensors );
+    exBus.SetSensorActive( ID_GPSHEA, cfg.enab_GPSHEA != 0, sensors );
 #endif
 
     SerialUSB.begin(125000);
@@ -729,12 +448,12 @@ void setup () {
         delay (500);
     }
 
-    // calc alfas from ms5611.delta_t for time constants chosen
+    // calc default alfas from ms5611.delta_t for time constants chosen
     // ms5611.delta_t depends on number of sensors and oversampling rates chosen
     alfa_1 = ms5611.delta_t / ( T1 + ms5611.delta_t );
     alfa_2 = ms5611.delta_t / ( T2 + ms5611.delta_t );
 
-    // calc gain from time constants chosen 
+    // calc default gain from time constants chosen 
     factor = 1000000 / (T2 - T1);
 
     // warm up
@@ -789,9 +508,9 @@ void loop () {
     //if ( USB->DEVICE.DADD.reg &USB_DEVICE_DADD_ADDEN ) { // low level
     //if ( SerialUSB && cliStart) { // possible CLI start only one time after a reset
     if ( SerialUSB ) {    
-        cli();
+        cliConf();
     }
-#endif    
+#endif
 
     //digitalWrite(PIN_A8, HIGH);
 
@@ -800,7 +519,7 @@ void loop () {
         if ( exBus.HasNewChannelData() )
         {
             // channel controls time constant
-            channelValue = exBus.GetChannel(config.ctrl_CHANNL);
+            channelValue = exBus.GetChannel(cfg.ctrl_CHANNL);
 
             // channelValue can be 0 sometimes if RC transmitter is started after the receiver
             if (channelValue > 0)
@@ -812,23 +531,23 @@ void loop () {
                 // make time constants variable
                 // channel at 100% and no trimm -> 1000 - 2000
                 // check in servo monitor !
-                T1 = 150000 + 150000 * ((double)channelValue / 1000 - 1 );
-                T2 = 200000 + 200000 * ((double)channelValue / 1000 - 1 );
+                t1 = T1 + T1 * ((double)channelValue / 1000 - 1 );
+                t2 = T2 + T2 * ((double)channelValue / 1000 - 1 );
 
                 // calc alfas from ms5611.delta_t for time constants chosen
                 // ms5611.delta_t depends on number of sensors and oversampling rates chosen
-                alfa_1 = ms5611.delta_t / ( T1 + ms5611.delta_t );
-                alfa_2 = ms5611.delta_t / ( T2 + ms5611.delta_t );
+                alfa_1 = ms5611.delta_t / ( t1 + ms5611.delta_t );
+                alfa_2 = ms5611.delta_t / ( t2 + ms5611.delta_t );
 
                 // calc gain from time constants chosen
-                factor = 1000000 / (T2 - T1);
+                factor = 1000000 / (t2 - t1);
 
                 //dtostrf(T1, 6, 0, buf);
                 //SerialUSB.println(buf);
             }
 
-            // reset if config.rset_CHANNL has a changed value
-            channelValue = exBus.GetChannel(config.rset_CHANNL);
+            // reset if cfg.rset_CHANNL has a changed value
+            channelValue = exBus.GetChannel(cfg.rset_CHANNL);
             if ( abs(channelValue - prevChannelValue) > 800 )
                 NVIC_SystemReset();
             prevChannelValue = channelValue;
@@ -850,25 +569,25 @@ void loop () {
 #endif
 
 /******************************* TEST sample period 13.5ms (Dual Sensor) ***************************************
-        relativeAltitude_2 = 0;
-        relativeAltitude_1 = 0;
+        //relativeAltitude_2 = 0;
+        //relativeAltitude_1 = 0;
         j++;
         if ( j <= 186) {
             relativeAltitude_2 += j * 0.0135;  // 2.511m / 2.511s = 1m/s
             relativeAltitude_1 += j * 0.0135;  // 2.511m / 2.511s = 1m/s
         }
         else {
-            if ( j <= 1000 ) {
+            if ( j <= 400 ) {
                 relativeAltitude_2 += 2.511;
                 relativeAltitude_1 += 2.511;   
             } else {
-                if ( j <= 1019 ) {
-                    relativeAltitude_2 += 2.511 - ( j - 1000 ) * 0.13215789474; // -2.511m / 0.2511s = -10m/s
-                    relativeAltitude_1 += 2.511 - ( j - 1000 ) * 0.13215789474; // -2.511m / 0.2511s = -10m/s
+                if ( j <= 419 ) {
+                    relativeAltitude_2 += 2.511 - ( j - 400 ) * 0.13215789474; // -2.511m / 0.2511s = -10m/s
+                    relativeAltitude_1 += 2.511 - ( j - 400 ) * 0.13215789474; // -2.511m / 0.2511s = -10m/s
                 }
             }
         }
-        if ( j == 2000) {
+        if ( j == 700) {
             j = 0;
         }
 *****************************************************************************************************************/      
@@ -915,9 +634,9 @@ void loop () {
         // time constant of filter changes dynamically
         // greater speed of change means less filtering.
         // see "Nonlinear Exponential Filter"   
-        dyn_alfa_1 = abs( (climb_1 - climb0_1) / 0.8 );
+        dyn_alfa_1 = abs( (climb_1 - climb0_1) / 0.4 );
 #ifdef DUAL        
-        dyn_alfa_2 = abs( (climb_2 - climb0_2) / 0.8 );
+        dyn_alfa_2 = abs( (climb_2 - climb0_2) / 0.4 );
 #endif        
         if ( dyn_alfa_1 >= 1 ) {
             dyn_alfa_1 = 1;
@@ -956,11 +675,11 @@ void loop () {
 
 #ifdef DUAL
         // use climb from vario with TEK feature            
-        exBus.SetSensorValue (ID_CLIMB, round ((climb_2) * 100), true);
+        exBus.SetSensorValue (ID_VARIOM, round ((climb_2) * 100), true);
 #else 
-        exBus.SetSensorValue (ID_CLIMB, round ((climb_1) * 100), true);
+        exBus.SetSensorValue (ID_VARIOM, round ((climb_1) * 100), true);
 #endif         
-        exBus.SetSensorValue (ID_ALTITUDE, round ((r_altitude0_1) * 10), true);
+        exBus.SetSensorValue (ID_ALTITU, round ((r_altitude0_1) * 10), true);
 
         // For debugging with logic analyzer
         //digitalWrite(PIN_A8, LOW);

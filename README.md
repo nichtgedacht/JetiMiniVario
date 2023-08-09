@@ -99,7 +99,14 @@ which also used the serial interface at A6 A7.
 The upload was done via the debug interface. In the current configuration
 the upload is done via the USB-C connector.
 It is of course still possible to work with the BlackMagicProbe if the
-debug Serial.print goes through the USB-C connector. See "platformio.ini". 
+debug Serial.print goes through the USB-C connector. See "platformio.ini".
+<BR>
+<BR>
+You can upload also one of the UF2 files:
+* Short the reset contacts 2 times within 1/2 second.
+* The yellow LED will slowly dim blink.
+* The device will then register as mass storage
+* Copy the UF2 file there
 
 ### Configuration
 
@@ -122,17 +129,17 @@ All other configuration can be done with a Command-Line-Interface:
 
 The following items can be configured with the CLI
 
-* The RC-channel used for live adjusting the filters.  
-    The Number given is RC-channel - 1
+* The RC-channel used for live adjusting the filters. 
+
 * The RC-channel used to reset the device  
-    The Number given is RC-channel - 1
-* Priority of a sensor
 
-* Enable/disable a sensor
+* Priority of a sensor  
 
-As terminal Putty can be used. The default settings of Putty are ok.  
-Just select the serial interface connected to the device.  
-Putty is available for Linux, MAC OS and Windows
+* Enable/disable a sensor  
+
+As terminal emulation Putty can be used. The default settings of Putty are ok.  
+Just select the serial interface connected to the device. Choose at least 80x30 and  
+a 12 point font. Putty is available for Linux, MAC OS and Windows
 
 
 
