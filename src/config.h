@@ -3,24 +3,27 @@
 
 #define GPS
 #define DUAL
+#define VOLT
 
-#define HOMEERASE "\033[H\033[2J"       //cursor home and erase all
-#define GLOBALBLUE_BG "\033[48;5;4m"    //set background
-#define GLOBALWHITE_FG "\033[38;5;15m"  //set foreground
+#define CURSHOME "\033[H"               //cursor home
+#define ERASEALL "\033[2J"              //erase screen
 #define CURSBACK "\033[0G"              //cursor column 0
-#define CURS_C8 "\33[8G"                //cursor culumn 8
-#define CURSDOWN2 "\033[2E"             //cursor down 2 lines
+#define CURS_C8 "\033[8G"               //cursor culumn 8
 #define ERASELINE "\033[0K"             //erase line
 #define BRIGHTYELLOW_FG "\033[93m"      //set foreground
 #define WHITE_FG "\033[97m"             //set foreground
 #define GRAY_FG "\033[37m"              //set foreground
+#define BLUE_BG "\033[44m"              //set background
 #define CYAN_BG "\033[46m"              //set background
-#define CURSPOS "\033[%d;%dH"           //cursor pos y x
+#define BLACK_BG "\033[40m"             //set background
+#define CURSPOS "\033[%d;%dH"           //cursor pos y x (y do not work in Android UsbTerminal)
 
 typedef struct {
     boolean valid;
     uint8_t prio_VARIOM;
     uint8_t prio_ALTITU;
+
+    uint8_t prio_VOLTAG;  
 
     uint8_t prio_GPSLON;
     uint8_t prio_GPSLAT;
@@ -47,8 +50,17 @@ typedef struct {
     bool enab_GPSVAC;
     bool enab_GPSHEA;
 
+    bool enab_VOLTAG;
+
     uint8_t ctrl_CHANNL;
     uint8_t rset_CHANNL;
+
+    bool enab_CALIBR;
+    double high_MEASUR;
+    double lowr_MEASUR;
+    double high_VOLTAG;
+    double lowr_VOLTAG;
+
 } config_t;
 
 config_t getConf(void);

@@ -45,7 +45,7 @@ char enable_galileo[] = { 0xb5, 0x62, 0x06, 0x3e, 0x0c, 0x00, 0x00, 0x00,
 enum {
     ID_VARIOM = 1,
     ID_ALTITU,
-#ifdef GPS    
+#ifdef GPS
     ID_GPSLON,
     ID_GPSLAT,
     ID_GPSSPD,
@@ -55,7 +55,10 @@ enum {
     ID_GPSDIS,
     ID_GPSHAC,
     ID_GPSVAC,
-    ID_GPSHEA
+    ID_GPSHEA,
+#endif
+#ifdef VOLT
+    ID_VOLTAG,
 #endif
 };
 
@@ -67,6 +70,12 @@ double dyn_alfa_1, dyn_alfa_2, alfa_1, alfa_2, factor;
 uint32_t diff_t_A, max_diff_t_A, diff_t_B, max_diff_t_B;
 double relativeAltitude_1 = 0, relativeAltitude_2 = 0;
 
+#ifdef VOLT
+double avar = 0;
+uint16_t GAIN_CORR;
+uint16_t OFFSET_CORR;
+bool adcStart = true;
+#endif
 //int j=0;
 
 #ifdef GPS
@@ -115,7 +124,7 @@ typedef union {
     uint8_t UBXBuffer[92];
 
 } NavPvt_t;
-   
+
 typedef union {
 
     struct {
@@ -210,7 +219,7 @@ void DecodeUBX(uint8_t Class, uint8_t ID) {
         exBus.SetSensorValue (ID_GPSVAC, round(NavPvt.Val.vAcc/100), valid);
         exBus.SetSensorValue (ID_GPSHEA, round(NavPvt.Val.headMot/10000), valid);
     }
-    
+
 #ifdef DEBUG
     SerialUSB.print(NavPvt.Val.numSV);
     SerialUSB.println(" vehicles");    
@@ -225,9 +234,9 @@ void DecodeUBX(uint8_t Class, uint8_t ID) {
             break;
         case 3:
             SerialUSB.println("3d fix");
-            break;           
+            break;
     } 
-#endif      
+#endif
 }
 
 void parse_UBX_NAV(char c) {
@@ -271,7 +280,7 @@ void parse_UBX_NAV(char c) {
             UBXID = c;
             CheckSumA = CheckSumA + c;
             CheckSumB = CheckSumB + CheckSumA;
-             
+
             switch (UBXID) {
                 case 7:
                     UBXPayloadLength = 92;
@@ -310,9 +319,9 @@ void parse_UBX_NAV(char c) {
                 i = 0;
             } else {
                 state = WaitStart1; // error, try again
-#ifdef DEBUG                
+#ifdef DEBUG
                 SerialUSB.println("error UBXLengt");
-#endif                
+#endif
                 state = WaitStart1;
             }
             break;
@@ -338,9 +347,9 @@ void parse_UBX_NAV(char c) {
 
         default:
             state = WaitStart1;
-            break;  
-    }     
-}         
+            break;
+    }
+}
 
 // -------------------- /UBX ---------------------------
 #endif
@@ -349,7 +358,22 @@ void setup () {
 
     uint8_t i;
 
+#ifdef VOLT
+    double gain_corr;
+#endif
     cfg = getConf();
+
+#ifdef VOLT
+    gain_corr = ( cfg.high_MEASUR - cfg.lowr_MEASUR ) / ( cfg.high_VOLTAG - cfg.lowr_VOLTAG );
+    GAIN_CORR = round ( 2048 / gain_corr );
+    OFFSET_CORR = round ( (  cfg.lowr_MEASUR - gain_corr * cfg.lowr_VOLTAG ) * 4096 / 33 );
+
+    if ( cfg.enab_CALIBR ) {
+        ADC->OFFSETCORR.reg = ADC_OFFSETCORR_OFFSETCORR(OFFSET_CORR);
+        ADC->GAINCORR.reg = ADC_GAINCORR_GAINCORR(GAIN_CORR);
+        ADC->CTRLB.bit.CORREN = true;
+    }
+#endif
 
     // Attention! parameter priority added. Value will be send after every N times of completed sets
     // of all sensors are sent. Where N is priority.
@@ -369,6 +393,9 @@ void setup () {
         { ID_GPSVAC,    "GPS vAccuracy", "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
         { ID_GPSHEA,    "GPS Heading",   "deg",  JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
 #endif
+#ifdef VOLT
+        { ID_VOLTAG,    "Voltage",       "V",    JetiSensor::TYPE_14b, 2,         cfg.prio_VOLTAG },
+#endif
         0                           // end of array
     };
 
@@ -386,6 +413,9 @@ void setup () {
     exBus.SetSensorActive( ID_GPSHAC, cfg.enab_GPSHAC != 0, sensors );
     exBus.SetSensorActive( ID_GPSVAC, cfg.enab_GPSVAC != 0, sensors );
     exBus.SetSensorActive( ID_GPSHEA, cfg.enab_GPSHEA != 0, sensors );
+#endif
+#ifdef VOLT
+    exBus.SetSensorActive( ID_VOLTAG, cfg.enab_VOLTAG != 0, sensors );
 #endif
 
     SerialUSB.begin(125000);
@@ -419,7 +449,7 @@ void setup () {
         Serial1.write(enable_galileo[i]);
     }
 
-#endif    
+#endif
 
 #ifdef DEBUG
     Serial1.println("Initialize MS5611 Sensor");
@@ -431,7 +461,7 @@ void setup () {
     // remaining arguments are for the second sensor
     // except the third argument the following call is showing the default values of the lib
 
-#ifdef DUAL      
+#ifdef DUAL
     while (!ms5611.begin (MS5611_ULTRA_HIGH_RES, MS5611_STANDARD, true, MS5611_ULTRA_HIGH_RES, MS5611_STANDARD)) {
 #else
     while (!ms5611.begin (MS5611_ULTRA_HIGH_RES, MS5611_STANDARD)) {
@@ -441,7 +471,7 @@ void setup () {
     // while (!ms5611.begin (MS5611_ULTRA_HIGH_RES, MS5611_STANDARD )) {
     // if these 2 args are as shown they can be ommited also:
     // while (!ms5611.begin ()) {
-         
+
 #ifdef DEBUG
         SerialUSB.println ("Could not find a valid MS5611 sensor, check wiring!");
 #endif
@@ -461,9 +491,9 @@ void setup () {
     while (i < 100) {
         if (ms5611.data_ready) {
             ms5611.getPressure (true, 1);
-#ifdef DUAL            
+#ifdef DUAL
             ms5611.getPressure (true, 2);
-#endif            
+#endif
             i++;
         }
     }
@@ -473,9 +503,9 @@ void setup () {
     while (i < 100) {
         if (ms5611.data_ready) {
             referencePressure_1 += ms5611.getPressure (true, 1);
-#ifdef DUAL            
+#ifdef DUAL
             referencePressure_2 += ms5611.getPressure (true, 2);
-#endif            
+#endif
             i++;
         }
     }
@@ -500,16 +530,60 @@ void setup () {
     digitalWrite(PIN_A8, LOW);
     pinMode(PIN_A0, OUTPUT);
     digitalWrite(PIN_A0, LOW);
+
+    analogReadResolution(12);
 }
 
 void loop () {
 
+    /******* Test Arduino code ADC with low level correction ***********************
+
+    GAIN_ERROR = ( high_measued - low_measured ) / ( high_expected - low_expected )
+    gain_error = 2048 / GAIN_ERROR
+    offset_error = (low_measured - ( GAIN_ERROR * low_expected )) * 4096 / 3.3
+
+    //int16_t offset_error = 20;
+    //int16_t gain_error = 2058;
+
+    ADC->OFFSETCORR.reg = ADC_OFFSETCORR_OFFSETCORR(offset_error);
+    ADC->GAINCORR.reg = ADC_GAINCORR_GAINCORR(gain_error);
+    ADC->CTRLB.bit.CORREN = true;
+
+    uint32_t ar = analogRead(PIN_A9);
+    avar = avar - 0.01 * ( avar - (double) ar); // avarage by exponential filter
+    double res = (3.3 * avar ) / 409.6;         // assume 1:10 voltage divider
+    char string[20];
+
+    sprintf(string, ERASELINE CURSPOS "\033[?25l", 8, 10 ); // invisible cursor
+    SerialUSB.print(string);
+    dtostrf(avar, 5, 2, string);
+    SerialUSB.print(string);
+
+    sprintf(string, ERASELINE CURSPOS "\033[?25l", 10, 10); // invisible cursor
+    SerialUSB.print(string);
+    dtostrf(res, 2, 2, string);
+    SerialUSB.print(string);
+
+    ********************************************************************************/
+
 #ifndef DEBUG
     //if ( USB->DEVICE.DADD.reg &USB_DEVICE_DADD_ADDEN ) { // low level
     //if ( SerialUSB && cliStart) { // possible CLI start only one time after a reset
-    if ( SerialUSB ) {    
+    if ( SerialUSB ) {
         cliConf();
     }
+#endif
+
+#ifdef VOLT
+    //unsigned long mue = micros();
+    uint32_t ar = analogRead(PIN_A9);
+    if (adcStart) {
+        avar = ar;
+        adcStart = false;
+    }
+    avar = avar - 0.01 * ( avar - (double) ar); // avarage by exponential filter
+    double voltage = (3.3 * avar ) / 409.6;     // assume 1:10 voltage divider
+    //SerialUSB.println(micros() - mue); // 38 usec
 #endif
 
     //digitalWrite(PIN_A8, HIGH);
@@ -553,7 +627,7 @@ void loop () {
             prevChannelValue = channelValue;
        	}
 	}
-    
+
     if (ms5611.data_ready) {    // flag is interrupt trigggered and reset by ms5611.getPressure
 
         // For debugging with logic analyzer
@@ -597,66 +671,66 @@ void loop () {
 // *   dT means difference of these Time constants [s] (T2 - T1)
 // *   dx means difference of the results of both exponetial filters  
 // *   alpha means smoothsness factor ( determines T )
-// *   
+// *
 // *   exponential filter:
 // *   output[n] = output[n-1] - alpha * ( output[n-1] - input )
-// *   
+// *
 // *   if alpha == 1 then the output will be equal the input without
 // *   any filtering
-// *   
+// *
 // *   relations:
-// *   
+// *
 // *   climb = dx / dT
-// *   
+// *
 // *   alpha = dt / ( T + dt )
 // *   T = (dt / alpha) - dt
-// * 
+// *
 // *   dT = T2 - T1
 // *   dT = (dt / alpha1) - ( dt / alpha2 ) 
-// * 
+// *
 
         r_altitude0_1 = r_altitude0_1 - alfa_1 * (r_altitude0_1 - relativeAltitude_1);
-#ifdef DUAL        
+#ifdef DUAL
         r_altitude0_2 = r_altitude0_2 - alfa_1 * (r_altitude0_2 - relativeAltitude_2);
-#endif        
-        
+#endif
+
         r_altitude_1 = r_altitude_1 -  alfa_2 * (r_altitude_1 - relativeAltitude_1);
-#ifdef DUAL        
+#ifdef DUAL
         r_altitude_2 = r_altitude_2 -  alfa_2 * (r_altitude_2 - relativeAltitude_2);
 #endif
-    
+
         climb0_1 = (r_altitude0_1 - r_altitude_1) * factor;   // Factor is 1000000/dT ( 1/dT as seconds )
-#ifdef DUAL        
+#ifdef DUAL
         climb0_2 = (r_altitude0_2 - r_altitude_2) * factor;   // Factor is 1000000/dT ( 1/dT as seconds )
 #endif
-        
+
         // smoothing the climb value by another exponential filter
         // time constant of filter changes dynamically
         // greater speed of change means less filtering.
         // see "Nonlinear Exponential Filter"   
         dyn_alfa_1 = abs( (climb_1 - climb0_1) / 0.4 );
-#ifdef DUAL        
+#ifdef DUAL
         dyn_alfa_2 = abs( (climb_2 - climb0_2) / 0.4 );
-#endif        
+#endif
         if ( dyn_alfa_1 >= 1 ) {
             dyn_alfa_1 = 1;
         }
-        
-#ifdef DUAL        
+
+#ifdef DUAL
         if ( dyn_alfa_2 >= 1 ) {
             dyn_alfa_2 = 1;
         }
-#endif                
+#endif
         climb_1 = climb_1 - dyn_alfa_1 * ( climb_1 - climb0_1 );
-#ifdef DUAL        
+#ifdef DUAL
         climb_2 = climb_2 - dyn_alfa_2 * ( climb_2 - climb0_2 );
-#endif        
-        
+#endif
+
 #ifdef DEBUG
         /*/ output for plotter
         SerialUSB.print (climb_1);
         SerialUSB.print ("\t");
-        SerialUSB.print (climb_2);     
+        SerialUSB.print (climb_2);
         SerialUSB.print ("\t");
         SerialUSB.print (r_altitude0_1);
         SerialUSB.print ("\t");
@@ -678,8 +752,13 @@ void loop () {
         exBus.SetSensorValue (ID_VARIOM, round ((climb_2) * 100), true);
 #else 
         exBus.SetSensorValue (ID_VARIOM, round ((climb_1) * 100), true);
-#endif         
+#endif
         exBus.SetSensorValue (ID_ALTITU, round ((r_altitude0_1) * 10), true);
+
+#ifdef VOLT
+        //voltage = 31.345;
+        exBus.SetSensorValue (ID_VOLTAG, round ((voltage) * 100 ), true); 
+#endif
 
         // For debugging with logic analyzer
         //digitalWrite(PIN_A8, LOW);
@@ -696,10 +775,9 @@ void loop () {
 
             //input = Serial1.read();
             //SerialUSB.print(input, HEX);
-            //SerialUSB.print(" ");   
-
-        }        
-#endif        
+            //SerialUSB.print(" ");
+        }
+#endif
         // For debugging with logic analyzer
         //digitalWrite(PIN_A8, LOW);
     }
@@ -709,5 +787,5 @@ void loop () {
     //digitalWrite(PIN_A8, HIGH);
     exBus.DoJetiExBus();
     //digitalWrite(PIN_A8, LOW);
-      
+
 } // loop

@@ -32,6 +32,10 @@ A gas-tight volume is provided between the sensor boards.
 By encapsulating the sensor PCBs with thin epoxy plates and attaching
 a tube connection one sensor can be connected to a TEK probe. 
 
+A voltage divider 1:10 (recommended 2k and 18k each 0.1%) can be connected
+to PIN_A9. The 3.3V are used as reference so a voltage up to 33V can be
+applied. Accuracy is 1/100 V if calibrated, see below. 
+
 ## Mechanical design
 
 First set the alternative address on one of the Sensors:  
@@ -110,7 +114,7 @@ You can upload also one of the UF2 files:
 
 ### Configuration
 
-There are only these defines at the beginning of the main code:
+There are only these defines at the beginning of config.h:
 * //#define DEBUG // debug prints or not
 
 * #define DUAL // using one or two barometric pressure sensors  
@@ -137,13 +141,17 @@ The following items can be configured with the CLI
 
 * Enable/disable a sensor  
 
+* Calibrate the voltage sensor (ADC)  
+
+For calibrating the voltage sensor:
+* Disable calibration
+* Apply a voltage arround 3V
+* Read the measured voltage
+* Change the values for applied and measured voltages
+* Do the same for a voltage arround 30V
+* Enable calibration
+* Write changes
+
 As terminal emulation Putty can be used. The default settings of Putty are ok.  
-Just select the serial interface connected to the device. Choose at least 80x30 and  
-a 12 point font. Putty is available for Linux, MAC OS and Windows
-
-
-
-
-
-
-
+Just select the serial interface connected to the device. Choose at least 60x33.
+Putty is available for Linux, and Windows.
