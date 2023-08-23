@@ -360,7 +360,7 @@ void cliConf (void) {
                                 if ( value < 16 ) {
                                     config.rset_CHANNL = (uint8_t) value - 1;
                                 }
-
+#ifdef VOLT
                             } else if ( strncmp(key, "enab_CALIBR", 11 ) == 0 ) {
                                 if ( value <= 1 ) {
                                     config.enab_CALIBR = (uint8_t) value;
@@ -381,6 +381,7 @@ void cliConf (void) {
                                 if ( value <= 33 ) {
                                     config.lowr_VOLTAG = value;
                                 }
+#endif
                             }
                             // resets input field also
                             showConf(config, flashConfig);
