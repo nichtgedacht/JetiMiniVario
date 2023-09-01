@@ -117,13 +117,17 @@ You can upload also one of the UF2 files:
 There are only these defines at the beginning of config.h:
 * //#define DEBUG // debug prints or not
 
-* #define DUAL // using one or two barometric pressure sensors  
-    If dual pressure sensors are used one is for the variometer and the other becomes  
+* #define DUAL // using one or two barometric pressure sensors<br>
+<br>
+    If dual pressure sensors are used one is for the variometer and the other becomes<br>
     altitude.
 
-* #define GPS  // using the GNSS Modul or not
+* #define GPS  // using the GNSS Modul or not<br>
+
+* #define VOLT // using the ADC or not<br>
  
-These defines depends on the assembled hardware. Please comment out what is not used
+These defines depends on the assembled hardware. Please comment out what is not used<br>
+or use the appropriate UF2 file
 <br>
 <br>
 
@@ -133,18 +137,21 @@ All other configuration can be done with a Command-Line-Interface:
 
 The following items can be configured with the CLI
 
-* The RC-channel used for live adjusting the filters. 
+* The RC-channel used for live adjusting the filters.<br>
 
 * The RC-channel used to reset altitude and GNSS home position<br>
+<br>
   The transition of channel value for reset must go from higher to lower<br>
   and difference must be greater than 300 (e.g. from 2000 to 1000 ).<br>
-  Use the Servo Monitor 
+  Hint: Use the Servo Monitor. The transition must be instantanuosly.<br>
+  If this switch is used for changing a flight mode also and there is a delay<br>
+  i.e. a soft transition the reset will not work
 
-* Priority of a sensor  
+* Priority of a sensor<br>
 
-* Enable/disable a sensor  
+* Enable/disable a sensor<br>  
 
-* Calibrate the voltage sensor (ADC)  
+* Calibrate the voltage sensor (ADC)<br>  
 
 For calibrating the voltage sensor:
 * Disable calibration
@@ -155,6 +162,7 @@ For calibrating the voltage sensor:
 * Enable calibration
 * Write changes
 
-As terminal emulation Putty can be used. The default settings of Putty are ok.  
-Just select the serial interface connected to the device. Choose at least 60x33.
-Putty is available for Linux, and Windows.
+As terminal emulation Putty can be used. The default settings<br>
+of Putty are ok. Just select the serial interface connected to<br>
+the device. Choose at least 60x33. Putty is available for Linux,<br>
+and Windows.
