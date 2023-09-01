@@ -352,6 +352,12 @@ void cliConf (void) {
                                     config.enab_GPSHEA = (uint8_t) value;
                                 }
 #endif
+#ifdef VOLT
+                            } else if ( strncmp(key, "enab_VOLTAG", 11 ) == 0 ) {
+                                if ( value <= 1 ) {
+                                    config.enab_VOLTAG = (uint8_t) value;
+                                }
+#endif
                             } else if ( strncmp(key, "ctrl_CHANNL", 11 ) == 0 ) {
                                 if ( value < 16 ) {
                                     config.ctrl_CHANNL = (uint8_t) value - 1;

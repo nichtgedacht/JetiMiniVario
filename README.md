@@ -135,7 +135,10 @@ The following items can be configured with the CLI
 
 * The RC-channel used for live adjusting the filters. 
 
-* The RC-channel used to reset the device  
+* The RC-channel used to reset altitude and GNSS home position<br>
+  The transition of channel value for reset must go from higher to lower<br>
+  and difference must be greater than 300 (e.g. from 2000 to 1000 ).<br>
+  Use the Servo Monitor 
 
 * Priority of a sensor  
 

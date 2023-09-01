@@ -534,6 +534,14 @@ void setup () {
     analogReadResolution(12);
 }
 
+// resets referencePressure and set reset flag for GPS
+void altiZero(void) {
+    //getSeaLevel() calculates SealevelPressure from realpressure and real altitude MSL
+    referencePressure_1 = ms5611.getSeaLevel(referencePressure_1, -r_altitude0_1);
+    referencePressure_2 = ms5611.getSeaLevel(referencePressure_2, -r_altitude0_2);
+    resetHome = true; // GPS Home
+}
+
 void loop () {
 
     /******* Test Arduino code ADC with low level correction ***********************
@@ -568,7 +576,6 @@ void loop () {
 
 #ifndef DEBUG
     //if ( USB->DEVICE.DADD.reg &USB_DEVICE_DADD_ADDEN ) { // low level
-    //if ( SerialUSB && cliStart) { // possible CLI start only one time after a reset
     if ( SerialUSB ) {
         cliConf();
     }
@@ -620,11 +627,14 @@ void loop () {
                 //SerialUSB.println(buf);
             }
 
-            // reset if cfg.rset_CHANNL has a changed value
+            // reset if cfg.rset_CHANNL has a lower value (Edge trigger)
             channelValue = exBus.GetChannel(cfg.rset_CHANNL);
-            if ( abs(channelValue - prevChannelValue) > 800 )
-                NVIC_SystemReset();
+
+            if (channelValue < prevChannelValue - 300)
+                altiZero();
+
             prevChannelValue = channelValue;
+
        	}
 	}
 
