@@ -5,6 +5,8 @@
 #define DUAL
 #define VOLT
 
+//#define DEBUG
+
 #define CURSHOME "\033[H"               //cursor home
 #define ERASEALL "\033[2J"              //erase screen
 #define CURSBACK "\033[0G"              //cursor column 0

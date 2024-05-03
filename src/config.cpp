@@ -91,59 +91,59 @@ void showConf(config_t config, config_t flashConfig) {
     SerialUSB.print(BLUE_BG);
     SerialUSB.print(WHITE_FG);
 
-    printConfValue("prio_VARIOM:", config.prio_VARIOM, flashConfig.prio_VARIOM, 14, 1);
-    printConfValue("prio_ALTITU:", config.prio_ALTITU, flashConfig.prio_ALTITU, 14, 21);
+    printConfValue("prio_VARIOM:", config.prio_VARIOM, flashConfig.prio_VARIOM, 12, 1);
+    printConfValue("prio_ALTITU:", config.prio_ALTITU, flashConfig.prio_ALTITU, 12, 21);
 
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
 #endif
-    printConfValue("prio_VOLTAG:", config.prio_VOLTAG, flashConfig.prio_VOLTAG, 14, 41);
+    printConfValue("prio_VOLTAG:", config.prio_VOLTAG, flashConfig.prio_VOLTAG, 12, 41);
     SerialUSB.print(WHITE_FG);
 #ifndef GPS
     SerialUSB.print(GRAY_FG);
 #endif
-    printConfValue("prio_GPSLON:", config.prio_GPSLON, flashConfig.prio_GPSLON, 15, 1);
-    printConfValue("prio_GPSLAT:", config.prio_GPSLAT, flashConfig.prio_GPSLAT, 15, 21);
-    printConfValue("prio_GPSSPD:", config.prio_GPSSPD, flashConfig.prio_GPSSPD, 15, 41);
-    printConfValue("prio_GPSALT:", config.prio_GPSALT, flashConfig.prio_GPSALT, 16, 1 );
-    printConfValue("prio_GPSTIM:", config.prio_GPSTIM, flashConfig.prio_GPSTIM, 16, 21);  
-    printConfValue("prio_GPSSAT:", config.prio_GPSSAT, flashConfig.prio_GPSSAT, 16, 41);
-    printConfValue("prio_GPSDIS:", config.prio_GPSDIS, flashConfig.prio_GPSDIS, 17, 1);    
-    printConfValue("prio_GPSHAC:", config.prio_GPSHAC, flashConfig.prio_GPSHAC, 17, 21);
-    printConfValue("prio_GPSVAC:", config.prio_GPSVAC, flashConfig.prio_GPSVAC, 17, 41);
-    printConfValue("prio_GPSHEA:", config.prio_GPSHEA, flashConfig.prio_GPSHEA, 18, 1);
+    printConfValue("prio_GPSLON:", config.prio_GPSLON, flashConfig.prio_GPSLON, 13, 1);
+    printConfValue("prio_GPSLAT:", config.prio_GPSLAT, flashConfig.prio_GPSLAT, 13, 21);
+    printConfValue("prio_GPSSPD:", config.prio_GPSSPD, flashConfig.prio_GPSSPD, 13, 41);
+    printConfValue("prio_GPSALT:", config.prio_GPSALT, flashConfig.prio_GPSALT, 14, 1 );
+    printConfValue("prio_GPSTIM:", config.prio_GPSTIM, flashConfig.prio_GPSTIM, 14, 21);  
+    printConfValue("prio_GPSSAT:", config.prio_GPSSAT, flashConfig.prio_GPSSAT, 14, 41);
+    printConfValue("prio_GPSDIS:", config.prio_GPSDIS, flashConfig.prio_GPSDIS, 15, 1);    
+    printConfValue("prio_GPSHAC:", config.prio_GPSHAC, flashConfig.prio_GPSHAC, 15, 21);
+    printConfValue("prio_GPSVAC:", config.prio_GPSVAC, flashConfig.prio_GPSVAC, 15, 41);
+    printConfValue("prio_GPSHEA:", config.prio_GPSHEA, flashConfig.prio_GPSHEA, 16, 1);
     SerialUSB.print(WHITE_FG);
-    printConfValue("enab_VARIOM:", config.enab_VARIOM, flashConfig.enab_VARIOM, 20, 1);  
-    printConfValue("enab_ALTITU:", config.enab_ALTITU, flashConfig.enab_ALTITU, 20, 21);
+    printConfValue("enab_VARIOM:", config.enab_VARIOM, flashConfig.enab_VARIOM, 18, 1);  
+    printConfValue("enab_ALTITU:", config.enab_ALTITU, flashConfig.enab_ALTITU, 18, 21);
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
 #endif
-    printConfValue("enab_VOLTAG:", config.enab_VOLTAG, flashConfig.enab_VOLTAG, 20, 41);
+    printConfValue("enab_VOLTAG:", config.enab_VOLTAG, flashConfig.enab_VOLTAG, 18, 41);
     SerialUSB.print(WHITE_FG);
 #ifndef GPS
     SerialUSB.print(GRAY_FG);
 #endif
-    printConfValue("enab_GPSLON:", config.enab_GPSLON, flashConfig.enab_GPSLON, 21, 1);
-    printConfValue("enab_GPSLAT:", config.enab_GPSLAT, flashConfig.enab_GPSLAT, 21, 21);
-    printConfValue("enab_GPSSPD:", config.enab_GPSSPD, flashConfig.enab_GPSSPD, 21, 41);
-    printConfValue("enab_GPSALT:", config.enab_GPSALT, flashConfig.enab_GPSALT, 22, 1);
-    printConfValue("enab_GPSTIM:", config.enab_GPSTIM, flashConfig.enab_GPSTIM, 22, 21);
-    printConfValue("enab_GPSSAT:", config.enab_GPSSAT, flashConfig.enab_GPSSAT, 22, 41);
-    printConfValue("enab_GPSDIS:", config.enab_GPSDIS, flashConfig.enab_GPSDIS, 23, 1);
-    printConfValue("enab_GPSHAC:", config.enab_GPSHAC, flashConfig.enab_GPSHAC, 23, 21);
-    printConfValue("enab_GPSVAC:", config.enab_GPSVAC, flashConfig.enab_GPSVAC, 23, 41);
-    printConfValue("enab_GPSHEA:", config.enab_GPSHEA, flashConfig.enab_GPSHEA, 24, 1);
+    printConfValue("enab_GPSLON:", config.enab_GPSLON, flashConfig.enab_GPSLON, 19, 1);
+    printConfValue("enab_GPSLAT:", config.enab_GPSLAT, flashConfig.enab_GPSLAT, 19, 21);
+    printConfValue("enab_GPSSPD:", config.enab_GPSSPD, flashConfig.enab_GPSSPD, 19, 41);
+    printConfValue("enab_GPSALT:", config.enab_GPSALT, flashConfig.enab_GPSALT, 20, 1);
+    printConfValue("enab_GPSTIM:", config.enab_GPSTIM, flashConfig.enab_GPSTIM, 20, 21);
+    printConfValue("enab_GPSSAT:", config.enab_GPSSAT, flashConfig.enab_GPSSAT, 20, 41);
+    printConfValue("enab_GPSDIS:", config.enab_GPSDIS, flashConfig.enab_GPSDIS, 21, 1);
+    printConfValue("enab_GPSHAC:", config.enab_GPSHAC, flashConfig.enab_GPSHAC, 21, 21);
+    printConfValue("enab_GPSVAC:", config.enab_GPSVAC, flashConfig.enab_GPSVAC, 21, 41);
+    printConfValue("enab_GPSHEA:", config.enab_GPSHEA, flashConfig.enab_GPSHEA, 22, 1);
     SerialUSB.print(WHITE_FG);
-    printConfValue("ctrl_CHANNL:", config.ctrl_CHANNL+1, flashConfig.ctrl_CHANNL+1, 26, 1);
-    printConfValue("rset_CHANNL:", config.rset_CHANNL+1, flashConfig.rset_CHANNL+1, 26, 21);
+    printConfValue("ctrl_CHANNL:", config.ctrl_CHANNL+1, flashConfig.ctrl_CHANNL+1, 24, 1);
+    printConfValue("rset_CHANNL:", config.rset_CHANNL+1, flashConfig.rset_CHANNL+1, 24, 21);
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
-#endif    
-    printConfValue("enab_CALIBR:", config.enab_CALIBR, flashConfig.enab_CALIBR, 28, 1);
-    printConfFloatValue("high_MEASUR:", config.high_MEASUR, flashConfig.high_MEASUR, 29, 1);
-    printConfFloatValue("lowr_MEASUR:", config.lowr_MEASUR, flashConfig.lowr_MEASUR, 29, 31);
-    printConfFloatValue("high_VOLTAG:", config.high_VOLTAG, flashConfig.high_VOLTAG, 30, 1);
-    printConfFloatValue("lowr_VOLTAG:", config.lowr_VOLTAG, flashConfig.lowr_VOLTAG, 30, 31);
+#endif
+    printConfValue("enab_CALIBR:", config.enab_CALIBR, flashConfig.enab_CALIBR, 26, 1);
+    printConfFloatValue("high_MEASUR:", config.high_MEASUR, flashConfig.high_MEASUR, 27, 1);
+    printConfFloatValue("lowr_MEASUR:", config.lowr_MEASUR, flashConfig.lowr_MEASUR, 27, 31);
+    printConfFloatValue("high_VOLTAG:", config.high_VOLTAG, flashConfig.high_VOLTAG, 28, 1);
+    printConfFloatValue("lowr_VOLTAG:", config.lowr_VOLTAG, flashConfig.lowr_VOLTAG, 28, 31);
     SerialUSB.print(WHITE_FG);
 
     SerialUSB.print("\r\n\n" ERASELINE "Input: " CURS_C8 BLACK_BG "                  " CURS_C8);
@@ -256,6 +256,12 @@ void cliConf (void) {
                                 if ( value <= 20 ) {
                                     config.prio_VARIOM = (uint8_t) value;
                                 }
+#ifdef VOLT
+                            } else if ( strncmp(key, "prio_VOLTAG", 11 ) == 0 ) {
+                                if ( value <= 20 ) { 
+                                    config.prio_VOLTAG = (uint8_t) value;
+                                }
+#endif
 #ifdef GPS
                             } else if ( strncmp(key, "prio_ALTITU", 11 ) == 0 ) {
                                 if ( value <= 20 ) {

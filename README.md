@@ -118,7 +118,7 @@ There are only these defines at the beginning of config.h:
 * //#define DEBUG // debug prints or not
 
 * #define DUAL // using one or two barometric pressure sensors<br>
-<br>
+
     If dual pressure sensors are used one is for the variometer and the other becomes<br>
     altitude.
 
@@ -140,7 +140,7 @@ The following items can be configured with the CLI
 * The RC-channel used for live adjusting the filters.<br>
 
 * The RC-channel used to reset altitude and GNSS home position<br>
-<br>
+
   The transition of channel value for reset must go from higher to lower<br>
   and difference must be greater than 300 (e.g. from 2000 to 1000 ).<br>
   Hint: Use the Servo Monitor. The transition must be instantanuosly.<br>
