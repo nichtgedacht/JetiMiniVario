@@ -21,6 +21,7 @@ config_t getConf() {
         config.prio_GPSTIM = 0;
         config.prio_GPSSAT = 20;
         config.prio_GPSDIS = 3;
+        config.prio_GPSTRA = 3;
         config.prio_GPSHAC = 10;
         config.prio_GPSVAC = 10;
         config.prio_GPSHEA = 3;
@@ -37,6 +38,7 @@ config_t getConf() {
         config.enab_GPSTIM = 0;
         config.enab_GPSSAT = 1;
         config.enab_GPSDIS = 1;
+        config.enab_GPSTRA = 0;
         config.enab_GPSHAC = 1;
         config.enab_GPSVAC = 1;
         config.enab_GPSHEA = 1;
@@ -106,14 +108,15 @@ void showConf(config_t config, config_t flashConfig) {
     printConfValue("prio_GPSLAT:", config.prio_GPSLAT, flashConfig.prio_GPSLAT, 13, 21);
     printConfValue("prio_GPSSPD:", config.prio_GPSSPD, flashConfig.prio_GPSSPD, 13, 41);
     printConfValue("prio_GPSALT:", config.prio_GPSALT, flashConfig.prio_GPSALT, 14, 1 );
-    printConfValue("prio_GPSTIM:", config.prio_GPSTIM, flashConfig.prio_GPSTIM, 14, 21);  
+    printConfValue("prio_GPSTIM:", config.prio_GPSTIM, flashConfig.prio_GPSTIM, 14, 21);
     printConfValue("prio_GPSSAT:", config.prio_GPSSAT, flashConfig.prio_GPSSAT, 14, 41);
-    printConfValue("prio_GPSDIS:", config.prio_GPSDIS, flashConfig.prio_GPSDIS, 15, 1);    
-    printConfValue("prio_GPSHAC:", config.prio_GPSHAC, flashConfig.prio_GPSHAC, 15, 21);
-    printConfValue("prio_GPSVAC:", config.prio_GPSVAC, flashConfig.prio_GPSVAC, 15, 41);
-    printConfValue("prio_GPSHEA:", config.prio_GPSHEA, flashConfig.prio_GPSHEA, 16, 1);
+    printConfValue("prio_GPSDIS:", config.prio_GPSDIS, flashConfig.prio_GPSDIS, 15, 1);
+    printConfValue("prio_GPSTRA:", config.prio_GPSTRA, flashConfig.prio_GPSTRA, 15, 21);
+    printConfValue("prio_GPSHAC:", config.prio_GPSHAC, flashConfig.prio_GPSHAC, 15, 41);
+    printConfValue("prio_GPSVAC:", config.prio_GPSVAC, flashConfig.prio_GPSVAC, 16, 1);
+    printConfValue("prio_GPSHEA:", config.prio_GPSHEA, flashConfig.prio_GPSHEA, 16, 21);
     SerialUSB.print(WHITE_FG);
-    printConfValue("enab_VARIOM:", config.enab_VARIOM, flashConfig.enab_VARIOM, 18, 1);  
+    printConfValue("enab_VARIOM:", config.enab_VARIOM, flashConfig.enab_VARIOM, 18, 1);
     printConfValue("enab_ALTITU:", config.enab_ALTITU, flashConfig.enab_ALTITU, 18, 21);
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
@@ -130,9 +133,10 @@ void showConf(config_t config, config_t flashConfig) {
     printConfValue("enab_GPSTIM:", config.enab_GPSTIM, flashConfig.enab_GPSTIM, 20, 21);
     printConfValue("enab_GPSSAT:", config.enab_GPSSAT, flashConfig.enab_GPSSAT, 20, 41);
     printConfValue("enab_GPSDIS:", config.enab_GPSDIS, flashConfig.enab_GPSDIS, 21, 1);
-    printConfValue("enab_GPSHAC:", config.enab_GPSHAC, flashConfig.enab_GPSHAC, 21, 21);
-    printConfValue("enab_GPSVAC:", config.enab_GPSVAC, flashConfig.enab_GPSVAC, 21, 41);
-    printConfValue("enab_GPSHEA:", config.enab_GPSHEA, flashConfig.enab_GPSHEA, 22, 1);
+    printConfValue("enab_GPSTRA:", config.enab_GPSTRA, flashConfig.enab_GPSTRA, 21, 21);
+    printConfValue("enab_GPSHAC:", config.enab_GPSHAC, flashConfig.enab_GPSHAC, 21, 41);
+    printConfValue("enab_GPSVAC:", config.enab_GPSVAC, flashConfig.enab_GPSVAC, 22, 1);
+    printConfValue("enab_GPSHEA:", config.enab_GPSHEA, flashConfig.enab_GPSHEA, 22, 21);
     SerialUSB.print(WHITE_FG);
     printConfValue("ctrl_CHANNL:", config.ctrl_CHANNL+1, flashConfig.ctrl_CHANNL+1, 24, 1);
     printConfValue("rset_CHANNL:", config.rset_CHANNL+1, flashConfig.rset_CHANNL+1, 24, 21);
@@ -262,11 +266,11 @@ void cliConf (void) {
                                     config.prio_VOLTAG = (uint8_t) value;
                                 }
 #endif
-#ifdef GPS
                             } else if ( strncmp(key, "prio_ALTITU", 11 ) == 0 ) {
                                 if ( value <= 20 ) {
                                     config.prio_ALTITU = (uint8_t) value;
                                 }
+#ifdef GPS
                             } else if ( strncmp(key, "prio_GPSLON", 11 ) == 0 ) {
                                 if ( value <= 20 ) {
                                     config.prio_GPSLON = (uint8_t) value;
@@ -294,6 +298,10 @@ void cliConf (void) {
                             } else if ( strncmp(key, "prio_GPSDIS", 11 ) == 0 ) {
                                 if ( value <= 20 ) {
                                     config.prio_GPSDIS = (uint8_t) value;
+                                }
+                            } else if ( strncmp(key, "prio_GPSTRA", 11 ) == 0 ) {
+                                if ( value <= 20 ) {
+                                    config.prio_GPSTRA = (uint8_t) value;
                                 }
                             } else if ( strncmp(key, "prio_GPSHAC", 11 ) == 0 ) {
                                 if ( value <= 20 ) {
@@ -344,6 +352,10 @@ void cliConf (void) {
                             } else if ( strncmp(key, "enab_GPSDIS", 11 ) == 0 ) {
                                 if ( value <= 1 ) {
                                     config.enab_GPSDIS = (uint8_t) value;
+                                }
+                            } else if ( strncmp(key, "enab_GPSTRA", 11 ) == 0 ) {
+                                if ( value <= 1 ) {
+                                    config.enab_GPSTRA = (uint8_t) value;
                                 }
                             } else if ( strncmp(key, "enab_GPSHAC", 11 ) == 0 ) {
                                 if ( value <= 1 ) {

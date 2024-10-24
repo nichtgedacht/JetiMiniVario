@@ -34,6 +34,7 @@ typedef struct {
     uint8_t prio_GPSTIM;
     uint8_t prio_GPSSAT;
     uint8_t prio_GPSDIS;
+    uint8_t prio_GPSTRA;
     uint8_t prio_GPSHAC;
     uint8_t prio_GPSVAC;
     uint8_t prio_GPSHEA;
@@ -48,6 +49,7 @@ typedef struct {
     bool enab_GPSTIM;
     bool enab_GPSSAT;
     bool enab_GPSDIS;
+    bool enab_GPSTRA;
     bool enab_GPSHAC;
     bool enab_GPSVAC;
     bool enab_GPSHEA;

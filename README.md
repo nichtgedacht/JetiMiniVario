@@ -61,6 +61,17 @@ External connections are as shown here:
 Ready to use product:  
 ![IMG08](doc/IMG08.png)  
 
+Voltage Divider Lower Resistor:  
+![IMG09](doc/IMG09.png)  
+
+Future Second Voltage Measurement:  
+![IMG10](doc/IMG10.png)  
+
+Upper Resistor inserted in the Cable as SMD Part :  
+![IMG11](doc/IMG11.png)  
+
+
+
 ## Electrical limits
 
 JetiMiniVario can be powered by the RC receiver.
@@ -133,7 +144,7 @@ or use the appropriate UF2 file
 
 All other configuration can be done with a Command-Line-Interface:  
 
-![IMG07](doc/IMG09.png)
+![IMG12](doc/IMG12.png)
 
 The following items can be configured with the CLI
 
@@ -161,6 +172,22 @@ For calibrating the voltage sensor:
 * Do the same for a voltage arround 30V
 * Enable calibration
 * Write changes
+
+Legend:
+* VARIOM Variometer
+* ALTITU Barometric Altitude
+* VOLTAG Voltage
+* GPSLON GPS Longtitude
+* GPSLAT GPS Latitude
+* GPSSPD GPS Speed
+* GPSALT GPS Altitude
+* GPSTIM GPS Time
+* GPSSAT Number GPS Vehicles in use
+* GPSDIS Calculated Value of GPS Distance to Home Position
+* GPSTRA Calculated Value of GPS Travel Distance
+* GPSHAC GPS Horizontal Accuracy
+* GPSVAC GPS Vertical Accuracy
+* GPSHEA GPS Bearing
 
 As terminal emulation Putty can be used. The default settings<br>
 of Putty are ok. Just select the serial interface connected to<br>

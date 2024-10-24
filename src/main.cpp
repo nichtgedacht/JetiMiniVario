@@ -20,6 +20,9 @@ uint16_t prevChannelValue = 1500;
 bool resetHome = true;
 double latHome;
 double lonHome;
+double latLast;
+double lonLast;
+uint32_t travel = 0;
 
 #ifdef GPS
 // sets refresh rate
@@ -53,6 +56,7 @@ enum {
     ID_GPSTIM,
     ID_GPSVEH,
     ID_GPSDIS,
+    ID_GPSTRA,
     ID_GPSHAC,
     ID_GPSVAC,
     ID_GPSHEA,
@@ -166,6 +170,23 @@ uint16_t distanceHome(double lonRemote, double latRemote ) {
     return round ( sqrt( dx * dx + dy * dy ) ); // distance in decimeter
 }
 
+uint16_t distanceTravel(double lonCurrent, double latCurrent ) {
+
+    uint16_t step;
+
+    double dx = 1113000 * cos( ( latLast * PI ) / 180 ) * ( lonLast - lonCurrent); 
+    double dy = 1113000 * ( latLast - latCurrent);
+
+    step =  round ( sqrt( dx * dx + dy * dy ) ); // distance in decimeter
+
+    if (step > 20) {
+        latLast = latCurrent;
+        lonLast = lonCurrent;
+        travel += step ;
+    }
+    return travel / 10;
+}
+
 void DecodeUBX(uint8_t Class, uint8_t ID) {
 
     bool valid = false;
@@ -179,8 +200,9 @@ void DecodeUBX(uint8_t Class, uint8_t ID) {
             lon = (double)NavPvt.Val.lon/10000000; // degree
             if ( resetHome ) {
                 resetHome = false;
-                latHome = lat;
-                lonHome = lon;
+                latLast = latHome = lat;
+                lonLast = lonHome = lon;
+                travel = 0;
             }
         }
 
@@ -207,6 +229,8 @@ void DecodeUBX(uint8_t Class, uint8_t ID) {
         SerialUSB.println(NavPvt.Val.sec);
         SerialUSB.print(distanceHome(lon, lat));
         SerialUSB.println("m");
+        SerialUSB.print(distanceTravel(lon, lat));
+        SerialUSB.println("m");
 #endif
         exBus.SetSensorValueGPS (ID_GPSLAT, false, lat, valid);
         exBus.SetSensorValueGPS (ID_GPSLON, true,  lon, valid);
@@ -215,6 +239,7 @@ void DecodeUBX(uint8_t Class, uint8_t ID) {
         exBus.SetSensorValueTime(ID_GPSTIM, NavPvt.Val.hour, NavPvt.Val.min, NavPvt.Val.sec, valid);
         exBus.SetSensorValue (ID_GPSVEH, NavPvt.Val.numSV, valid);
         exBus.SetSensorValue (ID_GPSDIS, distanceHome(lon, lat), valid);
+        exBus.SetSensorValue (ID_GPSTRA, distanceTravel(lon, lat), valid);
         exBus.SetSensorValue (ID_GPSHAC, round(NavPvt.Val.hAcc/100), valid);
         exBus.SetSensorValue (ID_GPSVAC, round(NavPvt.Val.vAcc/100), valid);
         exBus.SetSensorValue (ID_GPSHEA, round(NavPvt.Val.headMot/10000), valid);
@@ -383,12 +408,13 @@ void setup () {
         { ID_ALTITU,    "AltRelat.",     "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_ALTITU },
 #ifdef GPS
         { ID_GPSLON,    "GPS Longitude", "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLON },
-	    { ID_GPSLAT,    "GPS Latitude",  "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLAT },
+        { ID_GPSLAT,    "GPS Latitude",  "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLAT },
         { ID_GPSSPD,    "GPS Speed",     "m/s",  JetiSensor::TYPE_14b, 2,         cfg.prio_GPSSPD },
-	    { ID_GPSALT,    "GPS Altitude",  "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSALT },
+        { ID_GPSALT,    "GPS Altitude",  "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSALT },
         { ID_GPSTIM,    "GPS Time",      "",     JetiSensor::TYPE_DT,  0,         cfg.prio_GPSTIM },
-	    { ID_GPSVEH,    "GPS Vehicles",  "",     JetiSensor::TYPE_6b,  0,         cfg.prio_GPSSAT },
+        { ID_GPSVEH,    "GPS Vehicles",  "",     JetiSensor::TYPE_6b,  0,         cfg.prio_GPSSAT },
         { ID_GPSDIS,    "GPS Distance",  "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
+        { ID_GPSTRA,    "GPS Travel",    "m",    JetiSensor::TYPE_22b, 0,         cfg.prio_GPSTRA },
         { ID_GPSHAC,    "GPS hAccuracy", "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
         { ID_GPSVAC,    "GPS vAccuracy", "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
         { ID_GPSHEA,    "GPS Heading",   "deg",  JetiSensor::TYPE_14b, 1,         cfg.prio_GPSDIS },
@@ -410,6 +436,7 @@ void setup () {
     exBus.SetSensorActive( ID_GPSTIM, cfg.enab_GPSTIM != 0, sensors );
     exBus.SetSensorActive( ID_GPSVEH, cfg.enab_GPSSAT != 0, sensors );
     exBus.SetSensorActive( ID_GPSDIS, cfg.enab_GPSDIS != 0, sensors );
+    exBus.SetSensorActive( ID_GPSTRA, cfg.enab_GPSTRA != 0, sensors );
     exBus.SetSensorActive( ID_GPSHAC, cfg.enab_GPSHAC != 0, sensors );
     exBus.SetSensorActive( ID_GPSVAC, cfg.enab_GPSVAC != 0, sensors );
     exBus.SetSensorActive( ID_GPSHEA, cfg.enab_GPSHEA != 0, sensors );
