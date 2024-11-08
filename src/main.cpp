@@ -24,6 +24,8 @@ double latLast;
 double lonLast;
 uint32_t travel = 0;
 
+ulong blink;
+
 #ifdef GPS
 // sets refresh rate
 char refresh_10hz[] = { 0xb5, 0x62, 0x06, 0x08, 0x06, 0x00, 0x64, 0x00,
@@ -46,8 +48,11 @@ char enable_galileo[] = { 0xb5, 0x62, 0x06, 0x3e, 0x0c, 0x00, 0x00, 0x00,
 #endif
 
 enum {
-    ID_VARIOM = 1,
+    ID_DUMMY = 0,
+#ifdef BARO
+    ID_VARIOM,
     ID_ALTITU,
+#endif
 #ifdef GPS
     ID_GPSLON,
     ID_GPSLAT,
@@ -66,6 +71,7 @@ enum {
 #endif
 };
 
+#ifdef BARO
 double referencePressure_1 = 0, referencePressure_2 = 0;
 double r_altitude_1 = 0, r_altitude0_1 = 0, r_altitude_2 = 0, r_altitude0_2 = 0; 
 double climb_1 = 0, climb0_1 = 0, climb_2 = 0, climb0_2 = 0; 
@@ -73,6 +79,7 @@ double dyn_alfa_1, dyn_alfa_2, alfa_1, alfa_2, factor;
 
 uint32_t diff_t_A, max_diff_t_A, diff_t_B, max_diff_t_B;
 double relativeAltitude_1 = 0, relativeAltitude_2 = 0;
+#endif
 
 #ifdef VOLT
 double avar = 0;
@@ -366,6 +373,8 @@ void parse_UBX_NAV(char c) {
             UBXChkB = c;
             if ( CheckSumA == UBXChkA && CheckSumB == UBXChkB ) {
                 DecodeUBX(UBXClass, UBXID);
+                digitalWrite( PIN_LED_13, LOW);
+                blink = millis();
             }
             state = WaitStart1;
             break;
@@ -381,7 +390,9 @@ void parse_UBX_NAV(char c) {
 
 void setup () {
 
+#if defined (BARO) || defined (GPS)
     uint8_t i;
+#endif
 
 #ifdef VOLT
     double gain_corr;
@@ -404,8 +415,10 @@ void setup () {
     // of all sensors are sent. Where N is priority.
     static JETISENSOR_CONST sensors[] = {
         //id,           name,            unit,               dataType, precision, priority
+#ifdef BARO
         { ID_VARIOM,    "Vario",         "m/s",  JetiSensor::TYPE_14b, 2,         cfg.prio_VARIOM },
         { ID_ALTITU,    "AltRelat.",     "m",    JetiSensor::TYPE_14b, 1,         cfg.prio_ALTITU },
+#endif
 #ifdef GPS
         { ID_GPSLON,    "GPS Longitude", "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLON },
         { ID_GPSLAT,    "GPS Latitude",  "",     JetiSensor::TYPE_GPS, 0,         cfg.prio_GPSLAT },
@@ -426,8 +439,10 @@ void setup () {
     };
 
     // enable sensors according to config
+#ifdef BARO
     exBus.SetSensorActive( ID_VARIOM, cfg.enab_VARIOM != 0, sensors );
     exBus.SetSensorActive( ID_ALTITU, cfg.enab_ALTITU != 0, sensors );
+#endif
 #ifdef GPS
     exBus.SetSensorActive( ID_GPSLON, cfg.enab_GPSLON != 0, sensors );
     exBus.SetSensorActive( ID_GPSLAT, cfg.enab_GPSLAT != 0, sensors );
@@ -488,6 +503,7 @@ void setup () {
     // remaining arguments are for the second sensor
     // except the third argument the following call is showing the default values of the lib
 
+#ifdef BARO
 #ifdef DUAL
     while (!ms5611.begin (MS5611_ULTRA_HIGH_RES, MS5611_STANDARD, true, MS5611_ULTRA_HIGH_RES, MS5611_STANDARD)) {
 #else
@@ -504,7 +520,6 @@ void setup () {
 #endif
         delay (500);
     }
-
     // calc default alfas from ms5611.delta_t for time constants chosen
     // ms5611.delta_t depends on number of sensors and oversampling rates chosen
     alfa_1 = ms5611.delta_t / ( T1 + ms5611.delta_t );
@@ -539,7 +554,8 @@ void setup () {
     referencePressure_1 = referencePressure_1 / 100;
 #ifdef DUAL    
     referencePressure_2 = referencePressure_2 / 100;
-#endif    
+#endif
+#endif //BARO
 
     exBus.SetDeviceId(0x76, 0x32); // 0x3276
     exBus.Start ("mini_vario", sensors, 0);
@@ -564,8 +580,10 @@ void setup () {
 // resets referencePressure and set reset flag for GPS
 void altiZero(void) {
     //getSeaLevel() calculates SealevelPressure from realpressure and real altitude MSL
+#ifdef BARO
     referencePressure_1 = ms5611.getSeaLevel(referencePressure_1, -r_altitude0_1);
     referencePressure_2 = ms5611.getSeaLevel(referencePressure_2, -r_altitude0_2);
+#endif    
     resetHome = true; // GPS Home
 }
 
@@ -629,6 +647,7 @@ void loop () {
             // channel controls time constant
             channelValue = exBus.GetChannel(cfg.ctrl_CHANNL);
 
+#ifdef BARO
             // channelValue can be 0 sometimes if RC transmitter is started after the receiver
             if (channelValue > 0)
             {
@@ -653,7 +672,7 @@ void loop () {
                 //dtostrf(T1, 6, 0, buf);
                 //SerialUSB.println(buf);
             }
-
+#endif //BARO
             // reset if cfg.rset_CHANNL has a lower value (Edge trigger)
             channelValue = exBus.GetChannel(cfg.rset_CHANNL);
 
@@ -665,6 +684,7 @@ void loop () {
        	}
 	}
 
+#ifdef BARO
     if (ms5611.data_ready) {    // flag is interrupt trigggered and reset by ms5611.getPressure
 
         // For debugging with logic analyzer
@@ -792,32 +812,40 @@ void loop () {
 #endif
         exBus.SetSensorValue (ID_ALTITU, round ((r_altitude0_1) * 10), true);
 
+//#ifdef VOLT
+//        //voltage = 31.345;
+//        exBus.SetSensorValue (ID_VOLTAG, round ((voltage) * 100 ), true); 
+//#endif
+
+        // For debugging with logic analyzer
+        //digitalWrite(PIN_A8, LOW);
+
+        // For debugging with logic analyzer
+        //digitalWrite(PIN_A8, LOW);
+    }
+#endif //BARO
+
 #ifdef VOLT
         //voltage = 31.345;
         exBus.SetSensorValue (ID_VOLTAG, round ((voltage) * 100 ), true); 
 #endif
 
-        // For debugging with logic analyzer
-        //digitalWrite(PIN_A8, LOW);
+
 #ifdef GPS
-    } else { // if ms5611.data_ready false
-
-        // For debugging with logic analyzer
-        //digitalWrite(PIN_A8, HIGH);
-
-        while ( Serial1.available())
-        {
-            // calls decodeUBX() 
-            parse_UBX_NAV(Serial1.read());
-
-            //input = Serial1.read();
-            //SerialUSB.print(input, HEX);
-            //SerialUSB.print(" ");
-        }
-#endif
-        // For debugging with logic analyzer
-        //digitalWrite(PIN_A8, LOW);
+    if (millis() - blink > 20) {
+        digitalWrite( PIN_LED_13, HIGH);
     }
+
+    while ( Serial1.available())
+    {
+        // calls decodeUBX() 
+        parse_UBX_NAV(Serial1.read());
+
+        //input = Serial1.read();
+        //SerialUSB.print(input, HEX);
+        //SerialUSB.print(" ");
+    }
+#endif
 
     //digitalWrite(PIN_A8, LOW);
 

@@ -93,9 +93,12 @@ void showConf(config_t config, config_t flashConfig) {
     SerialUSB.print(BLUE_BG);
     SerialUSB.print(WHITE_FG);
 
+#ifndef BARO
+    SerialUSB.print(GRAY_FG);
+#endif
     printConfValue("prio_VARIOM:", config.prio_VARIOM, flashConfig.prio_VARIOM, 12, 1);
     printConfValue("prio_ALTITU:", config.prio_ALTITU, flashConfig.prio_ALTITU, 12, 21);
-
+    SerialUSB.print(WHITE_FG);
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
 #endif
@@ -116,8 +119,12 @@ void showConf(config_t config, config_t flashConfig) {
     printConfValue("prio_GPSVAC:", config.prio_GPSVAC, flashConfig.prio_GPSVAC, 16, 1);
     printConfValue("prio_GPSHEA:", config.prio_GPSHEA, flashConfig.prio_GPSHEA, 16, 21);
     SerialUSB.print(WHITE_FG);
+#ifndef BARO
+    SerialUSB.print(GRAY_FG);
+#endif
     printConfValue("enab_VARIOM:", config.enab_VARIOM, flashConfig.enab_VARIOM, 18, 1);
     printConfValue("enab_ALTITU:", config.enab_ALTITU, flashConfig.enab_ALTITU, 18, 21);
+    SerialUSB.print(WHITE_FG);
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
 #endif
@@ -138,8 +145,19 @@ void showConf(config_t config, config_t flashConfig) {
     printConfValue("enab_GPSVAC:", config.enab_GPSVAC, flashConfig.enab_GPSVAC, 22, 1);
     printConfValue("enab_GPSHEA:", config.enab_GPSHEA, flashConfig.enab_GPSHEA, 22, 21);
     SerialUSB.print(WHITE_FG);
+
+#ifndef BARO
+    SerialUSB.print(GRAY_FG);
+#endif
     printConfValue("ctrl_CHANNL:", config.ctrl_CHANNL+1, flashConfig.ctrl_CHANNL+1, 24, 1);
+    SerialUSB.print(WHITE_FG);
+
+#if !defined BARO && !defined GPS
+    SerialUSB.print(GRAY_FG);
+#endif
     printConfValue("rset_CHANNL:", config.rset_CHANNL+1, flashConfig.rset_CHANNL+1, 24, 21);
+    SerialUSB.print(WHITE_FG);
+
 #ifndef VOLT
     SerialUSB.print(GRAY_FG);
 #endif
@@ -256,20 +274,23 @@ void cliConf (void) {
 
                         case 2:
                             // change values after checking them
-                            if ( strncmp(key, "prio_VARIOM", 11 ) == 0 ) {
+                            if ( false ) {
+#ifdef BARO
+                            } else if ( strncmp(key, "prio_VARIOM", 11 ) == 0 ) {
                                 if ( value <= 20 ) {
                                     config.prio_VARIOM = (uint8_t) value;
                                 }
+                            } else if ( strncmp(key, "prio_ALTITU", 11 ) == 0 ) {
+                                if ( value <= 20 ) {
+                                    config.prio_ALTITU = (uint8_t) value;
+                                }
+#endif
 #ifdef VOLT
                             } else if ( strncmp(key, "prio_VOLTAG", 11 ) == 0 ) {
                                 if ( value <= 20 ) { 
                                     config.prio_VOLTAG = (uint8_t) value;
                                 }
 #endif
-                            } else if ( strncmp(key, "prio_ALTITU", 11 ) == 0 ) {
-                                if ( value <= 20 ) {
-                                    config.prio_ALTITU = (uint8_t) value;
-                                }
 #ifdef GPS
                             } else if ( strncmp(key, "prio_GPSLON", 11 ) == 0 ) {
                                 if ( value <= 20 ) {
@@ -316,6 +337,7 @@ void cliConf (void) {
                                     config.prio_GPSHEA = (uint8_t) value;
                                 }
 #endif
+#ifdef BARO
                             } else if ( strncmp(key, "enab_VARIOM", 11 ) == 0 ) {
                                 if ( value <= 1 ) {
                                     config.enab_VARIOM = (uint8_t) value;
@@ -324,6 +346,7 @@ void cliConf (void) {
                                 if ( value <= 1 ) {
                                     config.enab_ALTITU = (uint8_t) value;
                                 }
+#endif
 #ifdef GPS
                             } else if ( strncmp(key, "enab_GPSLON", 11 ) == 0 ) {
                                 if ( value <= 1 ) {
@@ -376,14 +399,18 @@ void cliConf (void) {
                                     config.enab_VOLTAG = (uint8_t) value;
                                 }
 #endif
+#ifdef BARO 
                             } else if ( strncmp(key, "ctrl_CHANNL", 11 ) == 0 ) {
                                 if ( value < 16 ) {
                                     config.ctrl_CHANNL = (uint8_t) value - 1;
                                 }
+#endif
+#if defined (GPS) || defined (BARO)
                             } else if ( strncmp(key, "rset_CHANNL", 11 ) == 0 ) {
                                 if ( value < 16 ) {
                                     config.rset_CHANNL = (uint8_t) value - 1;
                                 }
+#endif
 #ifdef VOLT
                             } else if ( strncmp(key, "enab_CALIBR", 11 ) == 0 ) {
                                 if ( value <= 1 ) {

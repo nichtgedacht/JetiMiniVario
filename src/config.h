@@ -3,6 +3,7 @@
 
 #define GPS
 #define DUAL
+#define BARO
 #define VOLT
 
 //#define DEBUG
@@ -22,11 +23,10 @@
 
 typedef struct {
     boolean valid;
+
     uint8_t prio_VARIOM;
     uint8_t prio_ALTITU;
-
     uint8_t prio_VOLTAG;  
-
     uint8_t prio_GPSLON;
     uint8_t prio_GPSLAT;
     uint8_t prio_GPSSPD;
@@ -41,7 +41,6 @@ typedef struct {
 
     bool enab_VARIOM;
     bool enab_ALTITU;
-
     bool enab_GPSLON;
     bool enab_GPSLAT;
     bool enab_GPSSPD;
@@ -53,7 +52,6 @@ typedef struct {
     bool enab_GPSHAC;
     bool enab_GPSVAC;
     bool enab_GPSHEA;
-
     bool enab_VOLTAG;
 
     uint8_t ctrl_CHANNL;
