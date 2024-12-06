@@ -5,13 +5,14 @@
 #define DUAL
 #define BARO
 #define VOLT
+#define SERVO
 
 //#define DEBUG
 
 #define CURSHOME "\033[H"               //cursor home
 #define ERASEALL "\033[2J"              //erase screen
 #define CURSBACK "\033[0G"              //cursor column 0
-#define CURS_C8 "\033[8G"               //cursor culumn 8
+#define CURS_C10 "\033[10G"               //cursor culumn 8
 #define ERASELINE "\033[0K"             //erase line
 #define BRIGHTYELLOW_FG "\033[93m"      //set foreground
 #define WHITE_FG "\033[97m"             //set foreground
@@ -19,7 +20,7 @@
 #define BLUE_BG "\033[44m"              //set background
 #define CYAN_BG "\033[46m"              //set background
 #define BLACK_BG "\033[40m"             //set background
-#define CURSPOS "\033[%d;%dH"           //cursor pos y x (y do not work in Android UsbTerminal)
+#define CURSPOS "\033[%d;%dH"           //cursor pos y x (y does not work in Android UsbTerminal)
 
 typedef struct {
     boolean valid;
@@ -57,6 +58,20 @@ typedef struct {
     uint8_t ctrl_CHANNL;
     uint8_t rset_CHANNL;
 
+    uint16_t puls_TIMING;
+    uint8_t srv1_CHANNL;
+    uint8_t srv2_CHANNL;
+    uint8_t srv3_CHANNL;
+    uint8_t srv4_CHANNL;
+
+    uint16_t srv1_FAILSV;
+    uint16_t srv2_FAILSV;
+    uint16_t srv3_FAILSV;
+    uint16_t srv4_FAILSV;
+    float dlay_FAILSV;
+
+    bool fuse_WDTIME;
+
     bool enab_CALIBR;
     double high_MEASUR;
     double lowr_MEASUR;
@@ -65,6 +80,7 @@ typedef struct {
 
 } config_t;
 
+void writeConfig(config_t); 
 config_t getConf(void);
 void printConfValue (const char*, int, int, int, int );
 void showConf(config_t, config_t);

@@ -33,8 +33,27 @@ By encapsulating the sensor PCBs with thin epoxy plates and attaching
 a tube connection one sensor can be connected to a TEK probe. 
 
 A voltage divider 1:10 (recommended 2k and 18k each 0.1%) can be connected
-to PIN_A9. The 3.3V are used as reference so a voltage up to 33V can be
-applied. Accuracy is 1/100 V if calibrated, see below. 
+to PIN_A8. The 3.3V are used as reference so a voltage up to 33V can be
+applied. Accuracy is 1/100 V if calibrated, see below.
+
+Up to 4 Servos can be connected. The timing of the pulses (period) can
+be adjusted from 10 to 40 ms. The mapping to the RC-channels of the the
+EX-Bus is arbitary. Failsave positions can be adjusted for each servo.
+The time from a fail to failsave is adjustable also.
+
+There is a watchdog which monitors the main loop. If the loop time
+exceeds 7.8 ms all sensors are bypassed and a fuse becomes triggered
+within the configuration. If the loop time exceeds even 31 ms a system
+reset becomes triggered also. This way the servo control is save in
+case of a sensor hardware is blocking or delaying the loop.
+
+The fuse can be set again by the terminal, see below.
+
+Please use the bootloader from here:
+https://github.com/adafruit/uf2-samdx1/releases
+This bootloader has the brown-out detector implemented.
+I prevents for bootloader corruption renderering the XIAO death
+due to unclean power cycles.
 
 ## Mechanical design
 
@@ -64,20 +83,25 @@ Ready to use product:
 Voltage Divider Lower Resistor:  
 ![IMG09](doc/IMG09.png)  
 
-Future Second Voltage Measurement:  
+Upper Resistor inserted in the Cable as SMD Part:  
 ![IMG10](doc/IMG10.png)  
 
-Upper Resistor inserted in the Cable as SMD Part :  
+All Connections:  
 ![IMG11](doc/IMG11.png)  
-
-
 
 ## Electrical limits
 
 JetiMiniVario can be powered by the RC receiver.
 The voltage should not not exceed 6V. The voltage regulator
 on the XIAO has 7V as absolut maximum rating. 4 cells of NiMh
-are probably ok.
+are probably ok. But most GNSS-modules are specified for max 5.5V
+So it's better using a 5.5V BEC or an onboard LDO regulator like the
+AMS1117 5.0V type, if the input voltage exceeds 5.5V. Power from
+1 cell LiPo is perfectly ok for the device itself and the GNSS-modul.
+The 3.3V regulator of the XIAO can power the baro-sensor-pcbs VCC-pins
+in any setup. I recommend to remove the LEDs from the baro boards in
+order to save current consumption. The baro-pcbs can also be powered
+by the 5V because they have their own LDO 3.3V regulators.
 
 ## Software
 
@@ -144,7 +168,7 @@ or use the appropriate UF2 file
 
 All other configuration can be done with a Command-Line-Interface:  
 
-![IMG12](doc/IMG12.png)
+![IMG12](doc/IMG12.png)  
 
 The following items can be configured with the CLI
 
@@ -162,6 +186,16 @@ The following items can be configured with the CLI
 
 * Enable/disable a sensor<br>  
 
+* The RC-channel-mapping to the servo outputs<br>  
+
+* Period of servo pulses timing in micro s<br>  
+
+* Failsave positions in ms<br>  
+
+* Delay to failsave in s<br>  
+
+* Fuse of watchdog timer reset/set<br>  
+ 
 * Calibrate the voltage sensor (ADC)<br>  
 
 For calibrating the voltage sensor:
@@ -191,5 +225,5 @@ Legend:
 
 As terminal emulation Putty can be used. The default settings<br>
 of Putty are ok. Just select the serial interface connected to<br>
-the device. Choose at least 60x33. Putty is available for Linux,<br>
-and Windows.
+the device. Choose 83x36 (rows x colums) for optimal window.<br>
+Putty is available for Linux, and Windows.
