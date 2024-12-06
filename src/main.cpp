@@ -620,10 +620,9 @@ void loop () {
     ********************************************************************************/
 
 #ifndef DEBUG
-    if ( USB->DEVICE.DADD.reg &USB_DEVICE_DADD_ADDEN ) {    // if plugged in, fast check
-        if ( SerialUSB ) {                                  // if connected, slow check
-            cliConf();
-        }
+    //if ( USB->DEVICE.DADD.reg &USB_DEVICE_DADD_ADDEN ) { // low level
+    if ( SerialUSB ) {
+        cliConf();
     }
 #endif
 
