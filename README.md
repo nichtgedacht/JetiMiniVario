@@ -52,8 +52,7 @@ The fuse can be set again by the terminal, see below.
 Please use the bootloader from here:
 https://github.com/adafruit/uf2-samdx1/releases
 This bootloader has the brown-out detector implemented.
-I prevents for bootloader corruption renderering the XIAO death
-due to unclean power cycles.
+It prevents bootloader corruption due to unclean power cycles.
 
 ## Mechanical design
 
@@ -147,19 +146,45 @@ You can upload also one of the UF2 files:
 * The device will then register as mass storage
 * Copy the UF2 file there
 
+### LED Signals of application
+
+* Yellow LED blinks 1Hz
+
+For configurations without SERVO and with BARO (DUAL).<br>
+Baro Hardware is missing or broken.<br>
+Terminalserver can not be reached in this state.
+
+* RX- and TX-LED (blue) solid on
+
+For configurations with SERVO.<br>
+Watchdog has triggered the fuse. Reset fuse with a terminal <br>
+after checking the hardware.
+
+* Yellow LED blinks 10Hz.
+
+Normal operation with GPS (GNSS-modul).
+
+* RX- and TX-LED (blue) and yellow LED solid on
+
+Hard fault
+
 ### Configuration
 
 There are only these defines at the beginning of config.h:
 * //#define DEBUG // debug prints or not
 
-* #define DUAL // using one or two barometric pressure sensors<br>
+* #define BARO // using a barometric pressure sensor<br>
+
+* #define DUAL // using an additional barometric pressure sensor<br>
 
     If dual pressure sensors are used one is for the variometer and the other becomes<br>
     altitude.
 
-* #define GPS  // using the GNSS Modul or not<br>
+* #define GPS  // using the GNSS Modul<br>
 
-* #define VOLT // using the ADC or not<br>
+* #define VOLT // using the ADC<br>
+
+* #define SERVO // enable servo output<br>
  
 These defines depends on the assembled hardware. Please comment out what is not used<br>
 or use the appropriate UF2 file
@@ -188,9 +213,9 @@ The following items can be configured with the CLI
 
 * The RC-channel-mapping to the servo outputs<br>  
 
-* Period of servo pulses timing in micro s<br>  
+* Period of servo pulses timing in ms<br>  
 
-* Failsave positions in ms<br>  
+* Failsave positions in micro s<br>  
 
 * Delay to failsave in s<br>  
 
